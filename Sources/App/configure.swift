@@ -46,8 +46,7 @@ func configureMigrations(_ app: Application) async throws {
     app.migrations.add(Pool.Migration())
     app.migrations.add(PoolStatus.Migration())
     app.migrations.add(WaterStatus.Migration())
-    app.migrations.add(MaintenanceTask.Migration())
-    
+        
     try await app.autoMigrate()
 }
 

@@ -24,4 +24,5 @@ func routes(_ app: Application) throws {
     try app.register(collection: PoolsController())
     try app.register(collection: PoolStatusController())
     try app.register(collection: WaterStatusController())
+    try app.register(collection: PoolTasksController())
 }
