@@ -72,7 +72,7 @@ final class PoolStatusController: RouteCollection {
         poolStatus.emptyBasketsDate = updatedPoolStatus.emptyBaskets ? .now : nil
         poolStatus.testWaterDate = updatedPoolStatus.testWater ? .now : nil
         poolStatus.cleanFilterDate = updatedPoolStatus.cleanFilter ? .now : nil
-        poolStatus.runPumpDate = updatedPoolStatus.cleanFilter ? .now : nil
+        poolStatus.runPumpDate = updatedPoolStatus.runPump ? .now : nil
         poolStatus.inspectDate = updatedPoolStatus.inspect ? .now : nil
 
         try await poolStatus.update(on: req.db)
