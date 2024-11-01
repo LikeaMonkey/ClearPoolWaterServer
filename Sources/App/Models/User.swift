@@ -84,10 +84,3 @@ extension User: ModelAuthenticatable {
         try Bcrypt.verify(password, created: self.passwordHash)
     }
 }
-
-extension User {
-    func generateToken() throws -> UserToken {
-        let value = [UInt8].random(count: 16).base64
-        return try UserToken(value: value, userID: requireID())
-    }
-}

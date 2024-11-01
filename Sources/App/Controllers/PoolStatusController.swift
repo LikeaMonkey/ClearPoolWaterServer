@@ -10,11 +10,12 @@ import Fluent
 
 final class PoolStatusController: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {
-        let protected = routes
-//            .grouped(UserToken.authenticator())
-//            .grouped(User.guardMiddleware())
+        let secure = routes.grouped(
+            SessionToken.authenticator(),
+            SessionToken.guardMiddleware()
+        )
         
-        let poolStatus = protected.grouped("api", "poolStatus")
+        let poolStatus = secure.grouped("api", "poolStatus")
         poolStatus.get(use: index)
         poolStatus.post(use: create)
         

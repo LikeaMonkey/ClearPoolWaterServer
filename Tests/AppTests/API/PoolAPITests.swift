@@ -1,5 +1,5 @@
 //
-//  PoolTests.swift
+//  PoolAPITests.swift
 //  ClearPoolWaterServer
 //
 //  Created by Stanimir Hristov on 22.10.24.
@@ -8,7 +8,7 @@
 import XCTVapor
 @testable import App
 
-final class PoolTests: XCTestCase {
+final class PoolAPITests: XCTestCase {
     let poolsURI = "/api/pools/"
     var app: Application!
     
@@ -22,9 +22,10 @@ final class PoolTests: XCTestCase {
     }
     
     func testPoolCanBeRetrievedFromAPI() async throws {
-        let pool = try await Pool.create(on: app.db)
+        let (pool, token) = try await Pool.create(on: app)
         
-        try await app.test(.GET, poolsURI, afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.GET, poolsURI, headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .ok)
             let pools = try response.content.decode([Pool].self)
               
@@ -38,7 +39,7 @@ final class PoolTests: XCTestCase {
     }
     
     func testPoolCanBeSavedWithAPI() async throws {
-        let user = try await User.create(on: app.db)
+        let (user, token) = try await User.create(on: app)
         let pool = Pool.Create(
             name: "Test Pool",
             waterLevel: 0.8,
@@ -47,7 +48,8 @@ final class PoolTests: XCTestCase {
             user: try user.requireID()
         )
         
-        try await app.test(.POST, poolsURI, beforeRequest: { req async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.POST, poolsURI, headers: headers, beforeRequest: { req async throws in
             try req.content.encode(pool)
         }, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .ok)
@@ -59,7 +61,8 @@ final class PoolTests: XCTestCase {
             XCTAssertEqual(receivedPool.filterType, pool.filterType)
             XCTAssertNotNil(receivedPool.id)
             
-            try await app.test(.GET, poolsURI, afterResponse: { response async throws in
+            try await app.test(.GET, poolsURI, headers: headers, afterResponse: { response async throws in
+                XCTAssertEqual(response.status, .ok)
                 let pools = try response.content.decode([Pool].self)
                 
                 XCTAssertEqual(pools.count, 1)
@@ -73,9 +76,10 @@ final class PoolTests: XCTestCase {
     }
     
     func testGettingASinglePoolFromTheAPI() async throws {
-        let pool = try await Pool.create(on: app.db)
+        let (pool, token) = try await Pool.create(on: app)
 
-        try await app.test(.GET, "\(poolsURI)\(pool.id!)", afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.GET, "\(poolsURI)\(pool.id!)", headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .ok)
             let receivedPool = try response.content.decode(Pool.self)
             
@@ -88,15 +92,17 @@ final class PoolTests: XCTestCase {
     }
     
     func testGettingNonExistentSinglePoolFromTheAPI() async throws {
+        let token = try await SessionToken.create(on: app)
         let poolId = 1
 
-        try await app.test(.GET, "\(poolsURI)\(poolId)", afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.GET, "\(poolsURI)\(poolId)", headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .notFound)
         })
     }
     
     func testUpdatingASinglePoolFromTheAPI() async throws {
-        let pool = try await Pool.create(on: app.db)
+        let (pool, token) = try await Pool.create(on: app)
         let updatedPool = Pool.Create(
             name: "Updated Pool",
             waterLevel: 0.9,
@@ -105,7 +111,8 @@ final class PoolTests: XCTestCase {
             user: try pool.requireID()
         )
         
-        try await app.test(.PUT, "\(poolsURI)\(pool.id!)", beforeRequest: { req async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.PUT, "\(poolsURI)\(pool.id!)", headers: headers, beforeRequest: { req async throws in
             try req.content.encode(updatedPool)
         }, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .ok)
@@ -120,15 +127,17 @@ final class PoolTests: XCTestCase {
     }
     
     func testUpdatingANonExistentPoolFromTheAPI() async throws {
+        let token = try await SessionToken.create(on: app)
         let poolId = 1
         
-        try await app.test(.PUT, "\(poolsURI)\(poolId)", afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.PUT, "\(poolsURI)\(poolId)", headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .notFound)
         })
     }
     
     func testUpdatingASinglePoolWithInvalidNameFromTheAPI() async throws {
-        let pool = try await Pool.create(on: app.db)
+        let (pool, token) = try await Pool.create(on: app)
         let updatedPool = Pool.Create(
             name: "Too Long Nameeeeeeeeeeeeeeeeeee",
             waterLevel: 0.8,
@@ -137,7 +146,8 @@ final class PoolTests: XCTestCase {
             user: try pool.requireID()
         )
         
-        try await app.test(.PUT, "\(poolsURI)\(pool.id!)", beforeRequest: { req async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.PUT, "\(poolsURI)\(pool.id!)", headers: headers, beforeRequest: { req async throws in
             try req.content.encode(updatedPool)
         }, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .badRequest)
@@ -145,7 +155,7 @@ final class PoolTests: XCTestCase {
     }
     
     func testUpdatingASinglePoolWithInvalidWaterLevelFromTheAPI() async throws {
-        let pool = try await Pool.create(on: app.db)
+        let (pool, token) = try await Pool.create(on: app)
         let updatedPool = Pool.Create(
             name: "Test Pool",
             waterLevel: 1.1,
@@ -153,8 +163,9 @@ final class PoolTests: XCTestCase {
             filterType: .sand,
             user: try pool.requireID()
         )
-        
-        try await app.test(.PUT, "\(poolsURI)\(pool.id!)", beforeRequest: { req async throws in
+
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.PUT, "\(poolsURI)\(pool.id!)", headers: headers, beforeRequest: { req async throws in
             try req.content.encode(updatedPool)
         }, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .badRequest)
@@ -162,7 +173,7 @@ final class PoolTests: XCTestCase {
     }
     
     func testUpdatingASinglePoolWithInvalidWaterCapacityFromTheAPI() async throws {
-        let pool = try await Pool.create(on: app.db)
+        let (pool, token) = try await Pool.create(on: app)
         let updatedPool = Pool.Create(
             name: "Test Pool",
             waterLevel: 1.1,
@@ -171,7 +182,8 @@ final class PoolTests: XCTestCase {
             user: try pool.requireID()
         )
         
-        try await app.test(.PUT, "\(poolsURI)\(pool.id!)", beforeRequest: { req async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.PUT, "\(poolsURI)\(pool.id!)", headers: headers, beforeRequest: { req async throws in
             try req.content.encode(updatedPool)
         }, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .badRequest)
@@ -179,26 +191,30 @@ final class PoolTests: XCTestCase {
     }
     
     func testDeletingASinglePoolFromTheAPI() async throws {
-        let pool = try await Pool.create(on: app.db)
+        let (pool, token) = try await Pool.create(on: app)
         
-        try await app.test(.DELETE, "\(poolsURI)\(pool.id!)", afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.DELETE, "\(poolsURI)\(pool.id!)", headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .ok)
         })
     }
     
     func testDeletingANonExistentPoolFromTheAPI() async throws {
+        let token = try await SessionToken.create(on: app)
         let poolId = 1
         
-        try await app.test(.DELETE, "\(poolsURI)\(poolId)", afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.DELETE, "\(poolsURI)\(poolId)", headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .notFound)
         })
     }
     
     func testGettingUserPoolsFromTheAPI() async throws {
-        let pool = try await Pool.create(on: app.db)
+        let (pool, token) = try await Pool.create(on: app)
         let userId = pool.$user.id
-        
-        try await app.test(.GET, "\(poolsURI)user/\(userId)", afterResponse: { response async throws in
+
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.GET, "\(poolsURI)user/\(userId)", headers: headers) { response async throws in
             XCTAssertEqual(response.status, .ok)
             let pools = try response.content.decode([Pool].self)
             
@@ -208,17 +224,25 @@ final class PoolTests: XCTestCase {
             XCTAssertEqual(pools[0].waterLevel, pool.waterLevel)
             XCTAssertEqual(pools[0].waterCapacity, pool.waterCapacity)
             XCTAssertEqual(pools[0].filterType, pool.filterType)
-        })
+        }
     }
     
     func testGettingNonExistentUserPoolsFromTheAPI() async throws {
+        let token = try await SessionToken.create(on: app)
         let userId = 1
         
-        try await app.test(.GET, "\(poolsURI)user/\(userId)", afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.GET, "\(poolsURI)user/\(userId)", headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .ok)
             let pools = try response.content.decode([Pool].self)
             
             XCTAssertTrue(pools.isEmpty)
+        })
+    }
+    
+    func testUnathorizedRequest() async throws {
+        try await app.test(.GET, poolsURI, afterResponse: { response async throws in
+            XCTAssertEqual(response.status, .unauthorized)
         })
     }
 }

@@ -1,23 +1,29 @@
 import Vapor
 
 func routes(_ app: Application) throws {
-    let passwordProtected = app.grouped(User.authenticator())
-    passwordProtected.post("login") { req async throws -> UserToken in
+    let passwordProtected = app.grouped(
+        User.authenticator(),
+        User.guardMiddleware()
+    )
+    passwordProtected.post("login") { req async throws -> ClientTokenResponse in
         let user = try req.auth.require(User.self)
-        let token = try user.generateToken()
-        try await token.save(on: req.db)
-        
-        user.lastLogin = Date()
-        try await user.update(on: req.db)
-        
-        return token
+        let payload = try SessionToken(with: user)
+        return ClientTokenResponse(token: try await req.jwt.sign(payload))
     }
     
-    let protected = app
-        .grouped(UserToken.authenticator())
-        .grouped(User.guardMiddleware())
-    protected.get("me") { req -> User in
-        try req.auth.require(User.self)
+    let secure = app.grouped(
+        SessionToken.authenticator(),
+        SessionToken.guardMiddleware()
+    )
+    secure.get("me") { req -> User in
+        let sessionToken = try req.auth.require(SessionToken.self)
+        guard let user = try await User.find(sessionToken.userId, on: req.db) else {
+            throw Abort(.notFound)
+        }
+        
+        app.logger.debug("Validated logged in user: \(user)")
+
+        return user
     }
     
     try app.register(collection: UsersController())

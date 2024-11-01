@@ -10,11 +10,12 @@ import Fluent
 
 final class WaterStatusController: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {
-        let protected = routes
-//            .grouped(UserToken.authenticator())
-//            .grouped(User.guardMiddleware())
+        let secure = routes.grouped(
+            SessionToken.authenticator(),
+            SessionToken.guardMiddleware()
+        )
         
-        let waterStatus = protected.grouped("api", "waterStatus")
+        let waterStatus = secure.grouped("api", "waterStatus")
         waterStatus.get(use: index)
         waterStatus.post(use: create)
         

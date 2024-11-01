@@ -1,5 +1,5 @@
 //
-//  UserTests.swift
+//  UserAPITests.swift
 //  ClearPoolWaterServer
 //
 //  Created by Stanimir Hristov on 22.10.24.
@@ -8,7 +8,7 @@
 import XCTVapor
 @testable import App
 
-final class UserTests: XCTestCase {
+final class UserAPITests: XCTestCase {
     let usersURI = "/api/users/"
     var app: Application!
     
@@ -21,7 +21,7 @@ final class UserTests: XCTestCase {
         self.app = nil
     }
     
-    func testUsersCanBeRetrievedFromAPI() async throws {
+    func testGettingAllUsers() async throws {
         let user = try await User.create(on: app.db)
         
         try await app.test(.GET, usersURI, afterResponse: { response async throws in
@@ -36,7 +36,7 @@ final class UserTests: XCTestCase {
         })
     }
     
-    func testUserCanBeSavedWithAPI() async throws {
+    func testCreatingNewUser() async throws {
         let user = User.Create(
             email: "stanga@stanga.com",
             password: "12345678",
@@ -68,7 +68,7 @@ final class UserTests: XCTestCase {
         })
     }
     
-    func testCreateUserWithInvalidEmailWithAPI() async throws {
+    func testCreateUserWithInvalidEmail() async throws {
         let user = User.Create(
             email: "stanga",
             password: "12345678",
@@ -83,7 +83,7 @@ final class UserTests: XCTestCase {
         })
     }
     
-    func testCreateUserWithShortPasswordWithAPI() async throws {
+    func testCreateUserWithShortPassword() async throws {
         let user = User.Create(
             email: "stanga",
             password: "1234",
@@ -98,7 +98,7 @@ final class UserTests: XCTestCase {
         })
     }
     
-    func testCreateUserWithPasswordMissmatchWithAPI() async throws {
+    func testCreateUserWithPasswordMissmatch() async throws {
         let user = User.Create(
             email: "stanga",
             password: "12345678",
@@ -113,7 +113,7 @@ final class UserTests: XCTestCase {
         })
     }
     
-    func testGettingASingleUserFromTheAPI() async throws {
+    func testGettingSingleUser() async throws {
         let user = try await User.create(on: app.db)
 
         try await app.test(.GET, "\(usersURI)\(user.id!)", afterResponse: { response async throws in
@@ -126,7 +126,7 @@ final class UserTests: XCTestCase {
         })
     }
     
-    func testGettingNonExistentSingleUserFromTheAPI() async throws {
+    func testGettingNonExistentSingle() async throws {
         let userId = 1
 
         try await app.test(.GET, "\(usersURI)\(userId)", afterResponse: { response async throws in

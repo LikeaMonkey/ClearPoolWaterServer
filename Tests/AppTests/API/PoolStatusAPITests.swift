@@ -1,5 +1,5 @@
 //
-//  PoolStatusTests.swift
+//  PoolStatusAPITests.swift
 //  ClearPoolWaterServer
 //
 //  Created by Stanimir Hristov on 22.10.24.
@@ -8,7 +8,7 @@
 import XCTVapor
 @testable import App
 
-final class PoolStatusTests: XCTestCase {
+final class PoolStatusAPITests: XCTestCase {
     let poolStatusURI = "/api/poolStatus/"
     var app: Application!
     
@@ -22,15 +22,16 @@ final class PoolStatusTests: XCTestCase {
     }
     
     func testPoolStatusCanBeRetrievedFromAPI() async throws {
-        let poolStatus = try await PoolStatus.create(on: app.db)
+        let (poolStatus, token) = try await PoolStatus.create(on: app)
         
-        try await app.test(.GET, poolStatusURI, afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.GET, poolStatusURI, headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .ok)
             let poolStatuses = try response.content.decode([PoolStatus].self)
               
             XCTAssertEqual(poolStatuses.count, 1)
             XCTAssertEqual(poolStatuses[0].id, poolStatus.id)
-            XCTAssertTrue(DateTestUtils.isSameDay(poolStatuses[0].skimDate!, poolStatus.skimDate!))
+            XCTAssertTrue(DateUtils.isSameDay(poolStatuses[0].skimDate!, poolStatus.skimDate!))
             XCTAssertEqual(poolStatuses[0].vacuumDate, poolStatus.vacuumDate)
             XCTAssertEqual(poolStatuses[0].brushDate, poolStatus.brushDate)
             XCTAssertEqual(poolStatuses[0].emptyBasketsDate, poolStatus.emptyBasketsDate)
@@ -42,13 +43,14 @@ final class PoolStatusTests: XCTestCase {
     }
     
     func testPoolStatusCanBeSavedWithAPI() async throws {
-        let pool = try await Pool.create(on: app.db)
+        let (pool, token) = try await Pool.create(on: app)
         let poolStatus = PoolStatus.Create(
             skim: true,
             pool: try pool.requireID()
         )
         
-        try await app.test(.POST, poolStatusURI, beforeRequest: { req async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.POST, poolStatusURI, headers: headers, beforeRequest: { req async throws in
             try req.content.encode(poolStatus)
         }, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .ok)
@@ -57,7 +59,7 @@ final class PoolStatusTests: XCTestCase {
             XCTAssertNotNil(receivedPoolStatus.id)
             
             XCTAssertNotNil(receivedPoolStatus.skimDate)
-            XCTAssertTrue(DateTestUtils.isSameDay(receivedPoolStatus.skimDate!, .now))
+            XCTAssertTrue(DateUtils.isSameDay(receivedPoolStatus.skimDate!, .now))
             
             XCTAssertNil(receivedPoolStatus.vacuumDate)
             XCTAssertNil(receivedPoolStatus.brushDate)
@@ -67,12 +69,13 @@ final class PoolStatusTests: XCTestCase {
             XCTAssertNil(receivedPoolStatus.runPumpDate)
             XCTAssertNil(receivedPoolStatus.inspectDate)
             
-            try await app.test(.GET, poolStatusURI, afterResponse: { response async throws in
+            try await app.test(.GET, poolStatusURI, headers: headers, afterResponse: { response async throws in
+                XCTAssertEqual(response.status, .ok)
                 let poolStatuses = try response.content.decode([PoolStatus].self)
                   
                 XCTAssertEqual(poolStatuses.count, 1)
                 XCTAssertEqual(poolStatuses[0].id, receivedPoolStatus.id)
-                XCTAssertTrue(DateTestUtils.isSameDay(poolStatuses[0].skimDate!, receivedPoolStatus.skimDate!))
+                XCTAssertTrue(DateUtils.isSameDay(poolStatuses[0].skimDate!, receivedPoolStatus.skimDate!))
                 XCTAssertEqual(poolStatuses[0].vacuumDate, receivedPoolStatus.vacuumDate)
                 XCTAssertEqual(poolStatuses[0].brushDate, receivedPoolStatus.brushDate)
                 XCTAssertEqual(poolStatuses[0].emptyBasketsDate, receivedPoolStatus.emptyBasketsDate)
@@ -85,16 +88,17 @@ final class PoolStatusTests: XCTestCase {
     }
     
     func testGettingASinglePoolStatusFromTheAPI() async throws {
-        let poolStatus = try await PoolStatus.create(on: app.db)
+        let (poolStatus, token) = try await PoolStatus.create(on: app)
 
-        try await app.test(.GET, "\(poolStatusURI)\(poolStatus.id!)", afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.GET, "\(poolStatusURI)\(poolStatus.id!)", headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .ok)
             let receivedPoolStatus = try response.content.decode(PoolStatus.self)
             
             XCTAssertEqual(receivedPoolStatus.id, poolStatus.id)
             
             XCTAssertNotNil(receivedPoolStatus.skimDate)
-            XCTAssertTrue(DateTestUtils.isSameDay(receivedPoolStatus.skimDate!, poolStatus.skimDate!))
+            XCTAssertTrue(DateUtils.isSameDay(receivedPoolStatus.skimDate!, poolStatus.skimDate!))
             
             XCTAssertNil(receivedPoolStatus.vacuumDate)
             XCTAssertNil(receivedPoolStatus.brushDate)
@@ -107,15 +111,17 @@ final class PoolStatusTests: XCTestCase {
     }
     
     func testGettingNonExistentSinglePoolStatusFromTheAPI() async throws {
+        let token = try await SessionToken.create(on: app)
         let poolStatusId = 1
 
-        try await app.test(.GET, "\(poolStatusURI)\(poolStatusId)", afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.GET, "\(poolStatusURI)\(poolStatusId)", headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .notFound)
         })
     }
     
     func testUpdatingASinglePoolStatusFromTheAPI() async throws {
-        let poolStatus = try await PoolStatus.create(on: app.db)
+        let (poolStatus, token) = try await PoolStatus.create(on: app)
         let updatedPoolStatus = PoolStatus.Create(
             skim: true,
             vacuum: true,
@@ -128,7 +134,8 @@ final class PoolStatusTests: XCTestCase {
             pool: poolStatus.$pool.id
         )
         
-        try await app.test(.PUT, "\(poolStatusURI)\(poolStatus.id!)", beforeRequest: { req async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.PUT, "\(poolStatusURI)\(poolStatus.id!)", headers: headers, beforeRequest: { req async throws in
             try req.content.encode(updatedPoolStatus)
         }, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .ok)
@@ -137,60 +144,66 @@ final class PoolStatusTests: XCTestCase {
             XCTAssertEqual(receivedPoolStatus.id, poolStatus.id)
             
             XCTAssertNotNil(receivedPoolStatus.skimDate)
-            XCTAssertTrue(DateTestUtils.isSameDay(receivedPoolStatus.skimDate!, .now))
+            XCTAssertTrue(DateUtils.isSameDay(receivedPoolStatus.skimDate!, .now))
             XCTAssertNotNil(receivedPoolStatus.vacuumDate)
-            XCTAssertTrue(DateTestUtils.isSameDay(receivedPoolStatus.vacuumDate!, .now))
+            XCTAssertTrue(DateUtils.isSameDay(receivedPoolStatus.vacuumDate!, .now))
             XCTAssertNotNil(receivedPoolStatus.brushDate)
-            XCTAssertTrue(DateTestUtils.isSameDay(receivedPoolStatus.brushDate!, .now))
+            XCTAssertTrue(DateUtils.isSameDay(receivedPoolStatus.brushDate!, .now))
             XCTAssertNotNil(receivedPoolStatus.emptyBasketsDate)
-            XCTAssertTrue(DateTestUtils.isSameDay(receivedPoolStatus.emptyBasketsDate!, .now))
+            XCTAssertTrue(DateUtils.isSameDay(receivedPoolStatus.emptyBasketsDate!, .now))
             XCTAssertNotNil(receivedPoolStatus.testWaterDate)
-            XCTAssertTrue(DateTestUtils.isSameDay(receivedPoolStatus.testWaterDate!, .now))
+            XCTAssertTrue(DateUtils.isSameDay(receivedPoolStatus.testWaterDate!, .now))
             XCTAssertNotNil(receivedPoolStatus.cleanFilterDate)
-            XCTAssertTrue(DateTestUtils.isSameDay(receivedPoolStatus.cleanFilterDate!, .now))
+            XCTAssertTrue(DateUtils.isSameDay(receivedPoolStatus.cleanFilterDate!, .now))
             XCTAssertNotNil(receivedPoolStatus.runPumpDate)
-            XCTAssertTrue(DateTestUtils.isSameDay(receivedPoolStatus.runPumpDate!, .now))
+            XCTAssertTrue(DateUtils.isSameDay(receivedPoolStatus.runPumpDate!, .now))
             XCTAssertNotNil(receivedPoolStatus.inspectDate)
-            XCTAssertTrue(DateTestUtils.isSameDay(receivedPoolStatus.inspectDate!, .now))
+            XCTAssertTrue(DateUtils.isSameDay(receivedPoolStatus.inspectDate!, .now))
         })
     }
     
     func testUpdatingANonExistentPoolStatusFromTheAPI() async throws {
+        let token = try await SessionToken.create(on: app)
         let poolStatusId = 1
         
-        try await app.test(.PUT, "\(poolStatusURI)\(poolStatusId)", afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.PUT, "\(poolStatusURI)\(poolStatusId)", headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .notFound)
         })
     }
     
     func testDeletingASinglePoolStatusFromTheAPI() async throws {
-        let poolStatus = try await PoolStatus.create(on: app.db)
+        let (poolStatus, token) = try await PoolStatus.create(on: app)
         
-        try await app.test(.DELETE, "\(poolStatusURI)\(poolStatus.id!)", afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.DELETE, "\(poolStatusURI)\(poolStatus.id!)", headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .ok)
         })
     }
     
     func testDeletingANonExistentPoolStatusFromTheAPI() async throws {
+        let token = try await SessionToken.create(on: app)
         let poolStatusId = 1
         
-        try await app.test(.DELETE, "\(poolStatusURI)\(poolStatusId)", afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.DELETE, "\(poolStatusURI)\(poolStatusId)", headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .notFound)
         })
     }
     
     func testGettingPoolStatusForPoolFromTheAPI() async throws {
-        let poolStatus = try await PoolStatus.create(on: app.db)
+        let (poolStatus, token) = try await PoolStatus.create(on: app)
         let poolId = poolStatus.$pool.id
         
-        try await app.test(.GET, "\(poolStatusURI)pool/\(poolId)", afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.GET, "\(poolStatusURI)pool/\(poolId)", headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .ok)
             let receivedPoolStatus = try response.content.decode(PoolStatus.self)
             
             XCTAssertEqual(receivedPoolStatus.id, poolStatus.id)
             
             XCTAssertNotNil(receivedPoolStatus.skimDate)
-            XCTAssertTrue(DateTestUtils.isSameDay(receivedPoolStatus.skimDate!, .now))
+            XCTAssertTrue(DateUtils.isSameDay(receivedPoolStatus.skimDate!, .now))
             
             XCTAssertNil(receivedPoolStatus.vacuumDate)
             XCTAssertNil(receivedPoolStatus.brushDate)
@@ -203,10 +216,18 @@ final class PoolStatusTests: XCTestCase {
     }
     
     func testGettingNonExistentPoolStatusForPoolFromTheAPI() async throws {
+        let token = try await SessionToken.create(on: app)
         let poolId = 1
         
-        try await app.test(.GET, "\(poolStatusURI)pool/\(poolId)", afterResponse: { response async throws in
+        let headers = APIUtils.jwtBearerHeaders(with: token)
+        try await app.test(.GET, "\(poolStatusURI)pool/\(poolId)", headers: headers, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .notFound)
+        })
+    }
+    
+    func testUnauthorizedCall() async throws {
+        try await app.test(.GET, poolStatusURI, afterResponse: { response async throws in
+            XCTAssertEqual(response.status, .unauthorized)
         })
     }
 }

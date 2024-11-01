@@ -2,6 +2,7 @@ import Vapor
 import NIOSSL
 import Fluent
 import FluentPostgresDriver
+import JWT
 
 // configures your application
 public func configure(_ app: Application) async throws {
@@ -9,6 +10,11 @@ public func configure(_ app: Application) async throws {
     app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
     
     app.logger.logLevel = .init(rawValue: Environment.get("LOG_LEVEL")!) ?? .debug
+    
+    // Add HMAC with SHA-256 signer.
+    // TODO: Be sure to replace "secret" with an actual secret key.
+    // This key should be kept secure, ideally in a configuration file or environment variable.
+    await app.jwt.keys.add(hmac: "secret", digestAlgorithm: .sha256)
         
     configureDatabase(app)
     
@@ -42,7 +48,6 @@ func configureDatabase(_ app: Application) {
 
 func configureMigrations(_ app: Application) async throws {
     app.migrations.add(User.Migration())
-    app.migrations.add(UserToken.Migration())
     app.migrations.add(Pool.Migration())
     app.migrations.add(PoolStatus.Migration())
     app.migrations.add(WaterStatus.Migration())
