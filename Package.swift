@@ -39,5 +39,6 @@ let package = Package(
 
 var swiftSettings: [SwiftSetting] { [
     .enableUpcomingFeature("DisableOutwardActorInference"),
-    .enableExperimentalFeature("StrictConcurrency"),
+    // TODO: Enable when Vapor supports fully strict concurrency
+    //.enableExperimentalFeature("StrictConcurrency"),
 ] }
