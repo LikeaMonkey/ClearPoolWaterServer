@@ -40,7 +40,7 @@ final class WaterStatus: Model, Content, @unchecked Sendable {
     init(
         id: Int? = nil,
         ph: Double = 7.2,
-        chlorine: Double = 0.5,
+        chlorine: Double = 1.0,
         alkalinity: Double? = nil,
         temperature: Double? = nil,
         createdAt: Date? = nil,
