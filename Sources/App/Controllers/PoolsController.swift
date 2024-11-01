@@ -50,11 +50,19 @@ final class PoolsController: RouteCollection {
         try await pool.create(on: req.db)
         
         let poolStatus = PoolStatus(poolID: pool.id!)
-        try await poolStatus.create(on: req.db)
-        
         let waterStatus = WaterStatus(poolID: pool.id!)
-        try await waterStatus.create(on: req.db)
         
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask {
+                try await poolStatus.create(on: req.db)
+            }
+            group.addTask {
+                try await waterStatus.create(on: req.db)
+            }
+            
+            try await group.waitForAll()
+        }
+
         return pool
     }
     
