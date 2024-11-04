@@ -28,7 +28,7 @@ struct VacuumTask: PoolTaskRepresentable {
 struct BrushTask: PoolTaskRepresentable {
     let lastTimeDone: Date?
     var schedule: ScheduleRange {
-        ScheduleRange(low: 2, medium: 6, high: 10)
+        ScheduleRange(low: 1, medium: 2, high: 3)
     }
     var taskCode: PoolTaskCode { .brush }
     var taskType: PoolTaskType { .cleaning }

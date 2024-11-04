@@ -82,28 +82,28 @@ struct PoolTasksTests {
     
     struct BrushTaskTests {
         @Test func testHighPriority() async {
-            let lastTimeDone = DateUtils.date(daysAgo: 11)
+            let lastTimeDone = DateUtils.date(daysAgo: 4)
             let task = BrushTask(lastTimeDone: lastTimeDone).task
             let expected = PoolTask(code: .brush, priority: .high, type: .cleaning)
             #expect(task == expected)
         }
         
         @Test func testMediumPriority() async {
-            let lastTimeDone = DateUtils.date(daysAgo: 7)
+            let lastTimeDone = DateUtils.date(daysAgo: 2)
             let task = BrushTask(lastTimeDone: lastTimeDone).task
             let expected = PoolTask(code: .brush, priority: .medium, type: .cleaning)
             #expect(task == expected)
         }
         
         @Test func testLowPriority() async {
-            let lastTimeDone = DateUtils.date(daysAgo: 3)
+            let lastTimeDone = DateUtils.date(daysAgo: 1)
             let task = BrushTask(lastTimeDone: lastTimeDone).task
             let expected = PoolTask(code: .brush, priority: .low, type: .cleaning)
             #expect(task == expected)
         }
         
         @Test func testTooSoon() async {
-            let lastTimeDone = DateUtils.date(daysAgo: 1)
+            let lastTimeDone = DateUtils.date(daysAgo: 0)
             let task = BrushTask(lastTimeDone: lastTimeDone).task
             #expect(task == nil)
         }
