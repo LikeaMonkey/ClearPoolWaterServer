@@ -39,4 +39,9 @@ struct TaskPriorityEvaluatorTests {
         let result = TaskPriorityEvaluator.evaluate(for: date, schedule: schedule)
         #expect(result == .high)
     }
+    
+    @Test func testEvaluateForToday() async {
+        let result = TaskPriorityEvaluator.evaluate(for: .now, schedule: schedule)
+        #expect(result == .none)
+    }
 }
