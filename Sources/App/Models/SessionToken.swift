@@ -23,7 +23,7 @@ struct SessionToken: Content, Authenticatable, JWTPayload {
     }
     
     private struct Expiration {
-        static var time: TimeInterval { 60 * 60 * 24 } // One day
-        static var date: Date { Date().addingTimeInterval(time) }
+        static var date: Date { Date().addingTimeInterval(oneDay) }
+        static var oneDay: TimeInterval { 60 * 60 * 24 }
     }
 }
