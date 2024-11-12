@@ -227,33 +227,6 @@ final class WaterStatusAPITests: XCTestCase {
         })
     }
     
-    func testGettingWaterStatusForPoolFromTheAPI() async throws {
-        let (waterStatus, token) = try await WaterStatus.create(on: app)
-        let poolId = waterStatus.$pool.id
-        
-        let headers = APIUtils.jwtBearerHeaders(with: token)
-        try await app.test(.GET, "\(waterStatusURI)pool/\(poolId)", headers: headers, afterResponse: { response async throws in
-            XCTAssertEqual(response.status, .ok)
-            let receivedWaterStatus = try response.content.decode(WaterStatus.self)
-                          
-            XCTAssertEqual(receivedWaterStatus.id, waterStatus.id)
-            XCTAssertEqual(receivedWaterStatus.ph, waterStatus.ph)
-            XCTAssertEqual(receivedWaterStatus.chlorine, waterStatus.chlorine)
-            XCTAssertEqual(receivedWaterStatus.alkalinity, waterStatus.alkalinity)
-            XCTAssertEqual(receivedWaterStatus.temperature, waterStatus.temperature)
-        })
-    }
-    
-    func testGettingNonExistentWaterStatusForPoolFromTheAPI() async throws {
-        let token = try await SessionToken.create(on: app)
-        let poolId = 1
-        
-        let headers = APIUtils.jwtBearerHeaders(with: token)
-        try await app.test(.GET, "\(waterStatusURI)pool/\(poolId)", headers: headers, afterResponse: { response async throws in
-            XCTAssertEqual(response.status, .notFound)
-        })
-    }
-    
     func testUnauthorizedCall() async throws {
         try await app.test(.GET, waterStatusURI, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .unauthorized)

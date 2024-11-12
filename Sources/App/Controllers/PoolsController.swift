@@ -16,25 +16,38 @@ final class PoolsController: RouteCollection {
         )
 
         let pools = secure.grouped("api", "pools")
-        pools.get(use: index)
+        pools.get(use: getPools)
         pools.post(use: createPool)
         
-        pools.group(":id") { pool in
-            pool.get(use: getPool)
-            pool.put(use: updatePool)
-            pool.delete(use: deletePool)
+        let pool = pools.grouped(":id")
+        pool.get(use: getPool)
+        pool.put(use: updatePool)
+        pool.delete(use: deletePool)
+            
+        pool.group("poolStatus") { poolStatus in
+            poolStatus.get(use: getPoolStatus)
+        }
+            
+        pool.group("waterStatus") { waterStatus in
+            waterStatus.get(use: getWaterStatus)
         }
         
-        pools.group("user", ":id") { pool in
-            pool.get(use: getUserPools)
+        pool.group("tasks") { tasks in
+            tasks.get(use: getPoolTasks)
         }
     }
     
-    func index(req: Request) async throws -> [Pool] {
-        try await Pool.query(on: req.db).all()
+    func getPools(req: Request) async throws -> [Pool] {
+        let token = try req.auth.require(SessionToken.self)
+        let pools = try await Pool.query(on: req.db)
+            .filter(\.$user.$id == token.userId)
+            .all()
+        return pools
     }
     
     func createPool(req: Request) async throws -> Pool {
+        let token = try req.auth.require(SessionToken.self)
+
         try Pool.Create.validate(content: req)
         
         let create = try req.content.decode(Pool.Create.self)
@@ -44,7 +57,7 @@ final class PoolsController: RouteCollection {
             waterLevel: create.waterLevel,
             waterCapacity: create.waterCapacity,
             filterType: create.filterType,
-            userID: create.user
+            userID: token.userId
         )
         
         try await pool.create(on: req.db)
@@ -103,11 +116,49 @@ final class PoolsController: RouteCollection {
         return .ok
     }
     
-    func getUserPools(req: Request) async throws -> [Pool] {
+    func getPoolStatus(req: Request) async throws -> PoolStatus {
         let id = try req.parameters.require("id", as: Int.self)
-        let pools = try await Pool.query(on: req.db)
-            .filter(\.$user.$id == id)
-            .all()
-        return pools
+        guard let poolStatus = try await PoolStatus.query(on: req.db)
+            .filter(\.$pool.$id == id)
+            .first()
+        else {
+            throw Abort(.notFound)
+        }
+        return poolStatus
+    }
+    
+    func getWaterStatus(req: Request) async throws -> WaterStatus {
+        let id = try req.parameters.require("id", as: Int.self)
+        guard let waterStatus = try await WaterStatus.query(on: req.db)
+            .filter(\.$pool.$id == id)
+            .first()
+        else {
+            throw Abort(.notFound)
+        }
+        return waterStatus
+    }
+    
+    func getPoolTasks(req: Request) async throws -> [PoolTask] {
+        let id = try req.parameters.require("id", as: Int.self)
+        
+        async let waterStatus = WaterStatus.query(on: req.db)
+            .filter(\.$pool.$id == id)
+            .first()
+        async let poolStatus = PoolStatus.query(on: req.db)
+            .filter(\.$pool.$id == id)
+            .first()
+        
+        let (waterStatusResult, poolStatusResult) = try await (waterStatus, poolStatus)
+
+        guard let waterStatusResult, let poolStatusResult else {
+            throw Abort(.notFound)
+        }
+        
+        let poolTasks = PoolTasksManager.tasks(
+            waterStatus: waterStatusResult,
+            poolStatus: poolStatusResult
+        )
+        
+        return poolTasks
     }
 }

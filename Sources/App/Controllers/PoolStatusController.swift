@@ -24,10 +24,6 @@ final class PoolStatusController: RouteCollection {
             status.put(use: update)
             status.delete(use: delete)
         }
-        
-        poolStatus.group("pool", ":id") { status in
-            status.get(use: getPoolStatus)
-        }
     }
     
     func index(req: Request) async throws -> [PoolStatus] {
@@ -87,16 +83,5 @@ final class PoolStatusController: RouteCollection {
         }
         try await poolStatus.delete(on: req.db)
         return .ok
-    }
-    
-    func getPoolStatus(req: Request) async throws -> PoolStatus {
-        let id = try req.parameters.require("id", as: Int.self)
-        guard let poolStatus = try await PoolStatus.query(on: req.db)
-            .filter(\.$pool.$id == id)
-            .first()
-        else {
-            throw Abort(.notFound)
-        }
-        return poolStatus
     }
 }

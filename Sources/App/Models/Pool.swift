@@ -70,7 +70,6 @@ extension Pool {
         var waterLevel: Double
         var waterCapacity: Double
         var filterType: FilterType
-        var user: User.IDValue
     }
 }
 

@@ -191,40 +191,6 @@ final class PoolStatusAPITests: XCTestCase {
         })
     }
     
-    func testGettingPoolStatusForPoolFromTheAPI() async throws {
-        let (poolStatus, token) = try await PoolStatus.create(on: app)
-        let poolId = poolStatus.$pool.id
-        
-        let headers = APIUtils.jwtBearerHeaders(with: token)
-        try await app.test(.GET, "\(poolStatusURI)pool/\(poolId)", headers: headers, afterResponse: { response async throws in
-            XCTAssertEqual(response.status, .ok)
-            let receivedPoolStatus = try response.content.decode(PoolStatus.self)
-            
-            XCTAssertEqual(receivedPoolStatus.id, poolStatus.id)
-            
-            XCTAssertNotNil(receivedPoolStatus.skimDate)
-            XCTAssertTrue(DateUtils.isSameDay(receivedPoolStatus.skimDate!, .now))
-            
-            XCTAssertNil(receivedPoolStatus.vacuumDate)
-            XCTAssertNil(receivedPoolStatus.brushDate)
-            XCTAssertNil(receivedPoolStatus.emptyBasketsDate)
-            XCTAssertNil(receivedPoolStatus.testWaterDate)
-            XCTAssertNil(receivedPoolStatus.cleanFilterDate)
-            XCTAssertNil(receivedPoolStatus.runPumpDate)
-            XCTAssertNil(receivedPoolStatus.inspectDate)
-        })
-    }
-    
-    func testGettingNonExistentPoolStatusForPoolFromTheAPI() async throws {
-        let token = try await SessionToken.create(on: app)
-        let poolId = 1
-        
-        let headers = APIUtils.jwtBearerHeaders(with: token)
-        try await app.test(.GET, "\(poolStatusURI)pool/\(poolId)", headers: headers, afterResponse: { response async throws in
-            XCTAssertEqual(response.status, .notFound)
-        })
-    }
-    
     func testUnauthorizedCall() async throws {
         try await app.test(.GET, poolStatusURI, afterResponse: { response async throws in
             XCTAssertEqual(response.status, .unauthorized)
