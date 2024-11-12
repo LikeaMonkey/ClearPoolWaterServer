@@ -39,12 +39,4 @@ final class LoginAPITests: XCTestCase {
             XCTAssertFalse(tokenResponse.token.isEmpty)
         })
     }
-    
-    private func createBasicAuthentication(email: String, password: String) -> String {
-        let loginString = String(format: "%@:%@", email, password)
-        let loginData = loginString.data(using: String.Encoding.utf8)!
-        let base64LoginString = loginData.base64EncodedString()
-
-        return "Basic \(base64LoginString)"
-    }
 }
