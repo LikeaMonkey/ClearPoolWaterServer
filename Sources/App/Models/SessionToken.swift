@@ -11,18 +11,11 @@ import JWT
 struct SessionToken: Content, Authenticatable, JWTPayload {
     var userId: Int
     var admin: Bool
-    var expiration: ExpirationClaim
-
-    init(userId: Int, admin: Bool) {
-        self.userId = userId
-        self.admin = admin
-        self.expiration = ExpirationClaim(value: Expiration.date)
-    }
+    var expiration = ExpirationClaim(value: Expiration.date)
 
     init(with user: User) throws {
-        self.userId = try user.requireID()
-        self.admin = user.role == .admin
-        self.expiration = ExpirationClaim(value: Expiration.date)
+        userId = try user.requireID()
+        admin = user.role == .admin
     }
 
     func verify(using algorithm: some JWTAlgorithm) throws {
