@@ -1,4 +1,4 @@
-// swift-tools-version:5.10
+// swift-tools-version: 6.0
 import PackageDescription
 
 let package = Package(
@@ -25,22 +25,14 @@ let package = Package(
                 .product(name: "Fluent", package: "fluent"),
                 .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
                 .product(name: "JWT", package: "jwt"),
-            ],
-            swiftSettings: swiftSettings
+            ]
         ),
         .testTarget(
             name: "AppTests",
             dependencies: [
                 .target(name: "App"),
                 .product(name: "XCTVapor", package: "vapor"),
-            ],
-            swiftSettings: swiftSettings
+            ]
         )
     ]
 )
-
-var swiftSettings: [SwiftSetting] { [
-    .enableUpcomingFeature("DisableOutwardActorInference"),
-    // TODO: Enable when Vapor supports fully strict concurrency
-    //.enableExperimentalFeature("StrictConcurrency"),
-] }
