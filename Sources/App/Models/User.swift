@@ -77,8 +77,13 @@ extension User.Create: Validatable {
 }
 
 extension User: ModelAuthenticatable {
-    static let usernameKey = \User.$email
-    static let passwordHashKey = \User.$passwordHash
+    static var usernameKey: KeyPath<User, Field<String>> {
+        \User.$email
+    }
+    
+    static var passwordHashKey: KeyPath<User, Field<String>> {
+        \User.$passwordHash
+    }
 
     func verify(password: String) throws -> Bool {
         try Bcrypt.verify(password, created: self.passwordHash)

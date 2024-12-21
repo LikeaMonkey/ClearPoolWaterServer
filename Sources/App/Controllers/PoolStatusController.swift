@@ -8,7 +8,7 @@
 import Vapor
 import Fluent
 
-final class PoolStatusController: RouteCollection {
+final class PoolStatusController: RouteCollection, @unchecked Sendable {
     func boot(routes: any RoutesBuilder) throws {
         let secure = routes.grouped(
             SessionToken.authenticator(),

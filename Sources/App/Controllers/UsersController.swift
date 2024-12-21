@@ -7,7 +7,7 @@
 
 import Vapor
 
-final class UsersController: RouteCollection {
+final class UsersController: RouteCollection, @unchecked Sendable {
     func boot(routes: any RoutesBuilder) throws {
         let userRoutes = routes.grouped("api", "users")
         userRoutes.post(use: createUser)
