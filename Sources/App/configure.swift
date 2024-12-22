@@ -16,7 +16,7 @@ public func configure(_ app: Application) async throws {
     // This key should be kept secure, ideally in a configuration file or environment variable.
     await app.jwt.keys.add(hmac: "secret", digestAlgorithm: .sha256)
         
-    configureDatabase(app)
+    try configureDatabase(app)
     
     try await configureMigrations(app)
     
