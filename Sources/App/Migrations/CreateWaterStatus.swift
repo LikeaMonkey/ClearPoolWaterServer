@@ -20,8 +20,8 @@ extension WaterStatus {
                 .field("temperature", .double)
                 .field("created_at", .datetime, .required)
                 .field("updated_at", .datetime)
-                .field("pool_id", .int, .required, .references("pools", "id"))
-                .create()
+                .field("pool_id", .int, .required, .references("pools", "id", onDelete: .cascade, onUpdate: .cascade))
+                .update()
         }
         
         func revert(on database: any Database) async throws {

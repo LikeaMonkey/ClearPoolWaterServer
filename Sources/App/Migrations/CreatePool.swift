@@ -20,8 +20,8 @@ extension Pool {
                 .field("filter_type", .string, .required)
                 .field("created_at", .datetime, .required)
                 .field("updated_at", .datetime)
-                .field("user_id", .int, .required, .references("users", "id"))
-                .create()
+                .field("user_id", .int, .required, .references("users", "id", onDelete: .cascade, onUpdate: .cascade))
+                .update()
         }
         
         func revert(on database: any Database) async throws {
