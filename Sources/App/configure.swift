@@ -25,9 +25,24 @@ public func configure(_ app: Application) async throws {
     try routes(app)
 }
 
-func configureDatabase(_ app: Application) {
+func configureDatabase(_ app: Application) throws {
+    // Production database
+    if let databaseURL = Environment.get("DATABASE_URL") {
+        var tlsConfig: TLSConfiguration = .makeClientConfiguration()
+        tlsConfig.certificateVerification = .none
+        let nioSSLContext = try NIOSSLContext(configuration: tlsConfig)
+
+        var postgresConfig = try SQLPostgresConfiguration(url: databaseURL)
+        postgresConfig.coreConfiguration.tls = .require(nioSSLContext)
+
+        app.databases.use(.postgres(configuration: postgresConfig), as: .psql)
+        
+        return
+    }
+    
+    // Development/Testing local databases
     let databasePort: Int
-    if (app.environment == .testing) {
+    if app.environment == .testing {
       databasePort = 5433
     } else {
       databasePort = 5432
@@ -52,7 +67,9 @@ func configureMigrations(_ app: Application) async throws {
     app.migrations.add(PoolStatus.Migration())
     app.migrations.add(WaterStatus.Migration())
         
-    try await app.autoMigrate()
+    if app.environment != .production {
+        try await app.autoMigrate()
+    }
 }
 
 func enableTLS(_ app: Application) {
