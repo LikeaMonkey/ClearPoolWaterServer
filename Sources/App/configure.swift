@@ -9,7 +9,9 @@ public func configure(_ app: Application) async throws {
     // Serve files from /Public folder
     app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
     
-    app.logger.logLevel = .init(rawValue: Environment.get("LOG_LEVEL")!) ?? .debug
+    if let logLevel = Environment.get("LOG_LEVEL") {
+        app.logger.logLevel = .init(rawValue: logLevel) ?? .debug
+    }
     
     // Add HMAC with SHA-256 signer.
     // TODO: Be sure to replace "secret" with an actual secret key.
@@ -39,6 +41,8 @@ func configureDatabase(_ app: Application) throws {
         
         return
     }
+    
+    guard app.environment != .production else { return }
     
     // Development/Testing local databases
     let databasePort: Int
