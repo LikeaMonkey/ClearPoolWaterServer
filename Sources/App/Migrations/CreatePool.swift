@@ -21,7 +21,7 @@ extension Pool {
                 .field("created_at", .datetime, .required)
                 .field("updated_at", .datetime)
                 .field("user_id", .int, .required, .references("users", "id", onDelete: .cascade, onUpdate: .cascade))
-                .update()
+                .create()
         }
         
         func revert(on database: any Database) async throws {

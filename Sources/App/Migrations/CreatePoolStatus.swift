@@ -25,7 +25,7 @@ extension PoolStatus {
                 .field("created_at", .datetime, .required)
                 .field("updated_at", .datetime)
                 .field("pool_id", .int, .required, .references("pools", "id", onDelete: .cascade, onUpdate: .cascade))
-                .update()
+                .create()
         }
         
         func revert(on database: any Database) async throws {
