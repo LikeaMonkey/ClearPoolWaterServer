@@ -73,6 +73,8 @@ func configureMigrations(_ app: Application) async throws {
 }
 
 func enableTLS(_ app: Application) {
+    guard app.environment != .production else { return }
+    
     let homePath = app.directory.workingDirectory
     let certPath = homePath + Environment.get("CERT_PATH")!
     let keyPath = homePath + Environment.get("KEY_PATH")!
