@@ -11,7 +11,9 @@ import JWT
 struct SessionToken: Content, Authenticatable, JWTPayload {
     var userId: Int
     var admin: Bool
-    var expiration = ExpirationClaim(value: Expiration.date)
+    
+    var iat = IssuedAtClaim(value: .now)
+    var exp = ExpirationClaim(value: Expiration.date)
 
     init(with user: User) throws {
         userId = try user.requireID()
@@ -19,11 +21,12 @@ struct SessionToken: Content, Authenticatable, JWTPayload {
     }
 
     func verify(using algorithm: some JWTAlgorithm) throws {
-        try expiration.verifyNotExpired()
+        try exp.verifyNotExpired()
     }
     
     private struct Expiration {
-        static var date: Date { Date().addingTimeInterval(oneDay) }
+        static var date: Date { Date().addingTimeInterval(oneMinute) }
         static var oneDay: TimeInterval { 60 * 60 * 24 }
+        static var oneMinute: TimeInterval { 60 }
     }
 }
